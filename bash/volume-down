@@ -1,0 +1,5 @@
+#!/bin/sh
+exec > /dev/null
+sink=@DEFAULT_SINK@
+pactl set-sink-mute $sink false
+pactl set-sink-volume $sink -5%

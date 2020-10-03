@@ -1,0 +1,159 @@
+#!/usr/bin/env perl
+#
+#   memtree.pl  -  show process memory usage in a tree
+#   Copyright (C) 2020  Christian Garbs <mitch@cgarbs.de>
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+use strict;
+use warnings;
+
+use List::Util qw( sum );
+use Number::Bytes::Human;
+use Proc::ProcessTable;
+use Term::Size::Any qw( chars );
+
+my $termwidth = chars;
+my $formatter = Number::Bytes::Human->new(bs => 1000, round_style => 'round', precision => 1);
+my $min_percent = 15;
+
+## process parameters
+
+my $arg = $ARGV[0] // '';
+
+if ($arg eq '-h' or $arg eq '--help') {
+    print <<"EOF";
+usage:  memtree [-h|--help] [-p <min_percent>] [<start_pid>...]
+
+ -h or --help      shows this help
+ -p <min_percent>  sets the minimum percentage for recursion into
+                   child processes (default: ${min_percent})
+ <start_pid>       start tree this process id
+                   (default: list all processes)
+
+Basically works like a combination of ps(1) and pstree(1):
+Lists processes in tree form and shows their memory usage (RSS).
+Every output line corresponds to a process and contains three values:
+
+  1. memory usage (RSS) of the process plus all child processes
+  2. memory usage (RSS) of the process itself
+  3. commandline of process
+
+Every level of the tree is sorted by the first value, biggest value first.
+
+By default deeper levels of the tree are only shown if they contribute at
+least ${min_percent}% of the total memory usage on that level.  Skipped parts of the
+tree are shown as ellipses (...).  Use -p <min_percent> to change the
+threshold for the recursion (eg. -p 0 will show the whole tree).
+
+When one or more <start_pid>s are given, the listed tree is limited to
+these processes and their children.
+EOF
+    exit 0;
+}
+
+if ($arg eq '-p') {
+    shift;
+    $min_percent = shift // $min_percent;
+}
+
+my @start_pids = @ARGV;
+
+sub calculate_child_rss {
+    my ($process) = @_;
+    my $sum = $process->{RSS};
+    foreach my $child ( @{$process->{CHILDS}} ) {
+	calculate_child_rss( $child );
+	$sum += $child->{SUM};
+    }
+    $process->{SUM} = $sum;
+}
+
+sub sum_sums {
+    my ($processes) = @_;
+    return sum ( map { $_->{SUM} } @{$processes} ) // 0;
+}
+
+sub by_size_descending {
+    return $b->{SUM} <=> $a->{SUM};
+}
+
+sub print_line {
+    my ($indentation, $sum, $rss, $cmdline) = @_;
+
+    my $line = sprintf '%s %5s %5s  %s', $indentation, $sum, $rss, $cmdline;
+    $line = substr $line, 0, $termwidth;
+    print $line . "\n";
+}
+
+sub print_recursive {
+    my ($processes, $level) = @_;
+    my $indentation = '   ' x $level;
+    my $sum = sum_sums $processes;
+    my $threshold = int( $sum * $min_percent / 100 );
+    foreach my $process ( sort { by_size_descending } @{$processes} ) {
+	if ($process->{SUM} < $threshold) {
+	    print_line $indentation, '...', '...', '...';
+	    last;
+	}
+
+	print_line
+	    $indentation,
+	    $formatter->format($process->{SUM}),
+	    $formatter->format($process->{RSS}),
+	    $process->{CMD};
+#	    "[$process->{PID}] $process->{CMD}";
+
+	print_recursive( $process->{CHILDS}, $level+1);
+    }
+}
+
+sub process_to_hash {
+    my ($process) = @_; # isa Proc::ProcessTable::Process
+
+    return () if $process->rss == 0;
+    
+    return ($process->pid => {
+	PID    => $process->pid,
+	PPID   => $process->ppid,
+	CMD    => join(' ', @{ $process->cmdline }),
+	RSS    => $process->rss,
+	    }
+	);
+}
+
+my %processes = map { process_to_hash $_ } @{ Proc::ProcessTable->new( 'enable_ttys' => 0 )->table };
+
+my @root_processes = ();
+
+foreach my $process ( values %processes ) {
+    my $parent = $processes{$process->{PPID}};
+    if (defined $parent) {
+	$process->{PARENT} = $parent;
+	push @{$parent->{CHILDS}}, $process;
+    } else {
+	push @root_processes, $process;
+    }
+}
+
+if (@start_pids) {
+    @root_processes = map {
+	my $process = $processes{$_};
+	defined $process ? $process : ();
+    } @start_pids;
+}
+
+calculate_child_rss $_ foreach @root_processes;
+
+print_recursive \@root_processes, 0;

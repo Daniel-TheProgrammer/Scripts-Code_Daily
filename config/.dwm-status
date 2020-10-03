@@ -1,0 +1,97 @@
+#!/bin/bash
+set -e
+
+# simple status script plus dropbox indicator for dwm-mitch
+
+if dropbox > /dev/null 2>&1; then
+    DROPBOX=yes
+else
+    DROPBOX=no
+fi
+
+DROPSTATE=/tmp/$USER.dropstate
+
+if command -v syncthing >/dev/null; then
+    SYNCTHING=yes
+else
+    SYNCTHING=no
+fi
+
+if [ -r /proc/spl/kstat/zfs/arcstats ]; then
+    ZFS=yes
+else
+    ZFS=no
+    arc=0
+fi
+
+USED=###########
+FREE="           "
+AVL=+++++++++++
+
+get_free_memory()
+{
+    declare -A mems=()
+    while read -r id amount _; do
+	mems[$id]="$amount"
+    done < /proc/meminfo
+    
+    buffcache=$(( ${mems[Buffers:]} + ${mems[Cached:]} ))
+
+    if [ $ZFS = yes ]; then
+	# manually count ZFS ARC as cache
+	while read -r name _ data; do
+	    if [ "$name" = size ]; then
+		arc=$(( data / 1024 ))
+		break
+	    fi
+	done < /proc/spl/kstat/zfs/arcstats
+    fi
+   
+    avl=$((  ( buffcache + arc ) * 10 / ${mems[MemTotal:]} ))
+    free=$(( ${mems[MemFree:]}   * 10 / ${mems[MemTotal:]} ))
+    used=$(( 10 - avl - free ))
+    
+    free_memory="|${USED:0:$used}${AVL:0:$avl}${FREE:0:$free}|"
+}
+
+touch_synced()
+{
+    local app=$1
+    printf "%(%c)T\\n" -1 > "/var/run/user/$UID/$app-synced"
+}
+
+while true; do
+      
+    DROP=
+    TIME=$(/bin/date +%H:%M:%S)
+    LOAD=$(cut -d ' ' -f -3 /proc/loadavg)
+
+    if [ $DROPBOX = yes ] ; then
+	LANG=C dropbox status > "$DROPSTATE" 2>&1
+	dropbox=in sync
+
+	if grep -F ownload "$DROPSTATE"; then
+	    DROP="${DROP}[Dv] "
+	    dropbox=syncing
+	fi
+
+	if grep -F pload "$DROPSTATE"; then
+	    DROP="${DROP}[D^] "
+	    dropbox=syncing
+	fi
+
+	[ "$dropbox" = 'in sync' ] && touch_synced dropbox
+    fi
+
+    if [ $SYNCTHING = yes ] ; then
+	syncthing=$(~/git/mitchscripts/bash/syncthing_status)
+	DROP="$DROP$syncthing "
+	[ -z "$syncthing" ] && touch_synced syncthing
+    fi
+
+    get_free_memory
+
+    xsetroot -name "$DROP$TIME $free_memory $LOAD"
+
+    sleep 23
+done

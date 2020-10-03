@@ -1,0 +1,79 @@
+! fix selection problems
+! https://unix.stackexchange.com/questions/45925/how-to-configure-the-double-click-behavior-in-an-x-terminal
+XTerm*VT100.cutNewline: false
+XTerm*VT100.cutToBeginningOfLine: false
+!XTerm*VT100.charClass: 33:48,35:48,37:48,42:48,45-47:48,64:48,95:48,126:48
+XTerm*VT100.charClass: 33:48,35:48,37:48,42:48,45-47:48,58:48,64:48,95:48,126:48
+
+! this mainly fixes the "unreadable dark blue on black" problem
+xterm*color4: rgb:50/50/a0
+xterm*color12: rgb:80/80/f0
+! cool pink:
+! xterm*color4: rgb:ff/60/e8
+
+! white on black please
+*.reverseVideo:on
+
+!XTerm*faceNameDoublesize: Sazanami Mincho-10
+
+xterm*utf8Title:	true
+
+XTerm*fontMenu*fontdefault*Label:       Default
+XTerm*font:     -efont-fixed-medium-r-normal-*-14-140-75-75-c-70-iso10646-1
+XTerm*wideFont: -efont-fixed-medium-r-normal-*-14-140-75-75-c-140-iso10646-1
+
+XTerm*font1.Label: efont 12 pixel
+XTerm*font1:     -efont-fixed-medium-r-normal-*-12-120-75-75-c-60-iso10646-1
+XTerm*wideFont1: -efont-fixed-medium-r-normal-*-12-120-75-75-c-120-iso10646-1
+XTerm*font2.Label: misc  13 pixel
+XTerm*font2:     -misc-fixed-medium-r-semicondensed-*-13-120-75-75-c-60-iso10646-1
+XTerm*wideFont2: -misc-fixed-medium-r-normal-*-13-120-75-75-c-120-iso10646-1
+XTerm*font3.Label: efont 14 pixel
+XTerm*font3:     -efont-fixed-medium-r-normal-*-14-140-75-75-c-70-iso10646-1
+XTerm*wideFont3: -efont-fixed-medium-r-normal-*-14-140-75-75-c-140-iso10646-1
+XTerm*font4.Label: efont 16 pixel
+XTerm*font4:     -efont-fixed-medium-r-normal-*-16-160-75-75-c-80-iso10646-1
+XTerm*wideFont4: -efont-fixed-medium-r-normal-*-16-160-75-75-c-160-iso10646-1
+XTerm*font5.Label: misc  18 pixel
+XTerm*font5:     -misc-fixed-medium-r-normal-*-18-120-100-100-c-90-iso10646-1
+XTerm*wideFont5: -misc-fixed-medium-r-normal-*-18-120-100-100-c-180-iso10646-1
+XTerm*font6.Label: efont 24 pixel
+XTerm*font6:     -efont-fixed-medium-r-normal-*-24-240-75-75-c-120-iso10646-1
+XTerm*wideFont6: -efont-fixed-medium-r-normal-*-24-240-75-75-c-240-iso10646-1
+
+
+
+*ScrollbarBackground:		black
+*ScrollbarForeground:		white
+*Scrollbar*background:		black
+*Scrollbar*foreground:		white
+*Scrollbar*shadowWidth:		0
+*Scrollbar*borderWidth:		2
+
+!emacs*menubar*Font:           -*-verdana-medium-r-*-*-*-90-*-*-*-*-iso8859-1
+!emacs.modeline*attributeFont: -*-verdana-medium-r-*-*-*-70-*-*-*-*-iso8859-1
+!emacs*popup*Font:             -*-verdana-medium-r-*-*-*-80-*-*-*-*-iso8859-1
+!emacs.reverseVideo:on
+emacs*font:-efont-fixed-medium-r-normal-*-14-*
+emacs*toolBar:0
+emacs*menuBar:0
+
+! ssh-askpass theme
+! source: /etc/X11/app-defaults/SshAskpass
+SshAskpass*Dialog.font:			-*-fixed-medium-r-*-*-14-*-*-*-*-*-*-*
+SshAskpass*foreground:			rgb:af/af/af
+SshAskpass*background:			rgb:10/10/10
+SshAskpass*topShadowColor:		rgb:6f/6f/6f
+SshAskpass*bottomShadowColor:		rgb:4f/4f/4f
+SshAskpass*borderColor:			rgb:20/20/20
+SshAskpass*shadowThickness:		1
+SshAskpass*borderWidth:			1
+!SshAskpass*horizontalSpacing:		5
+!SshAskpass*verticalSpacing:		6
+SshAskpass*Button.font:			-*-fixed-medium-r-*-*-14-*-*-*-*-*-*-*
+!SshAskpass*Button.shadowThickness:	2
+!SshAskpass*Button.borderWidth:		1
+!SshAskpass*Button.horizontalSpacing:	5
+!SshAskpass*Button.verticalSpacing:	2
+SshAskpass*Indicator.foreground:          rgb:80/00/00
+SshAskpass*Indicator.background:          rgb:00/00/80
